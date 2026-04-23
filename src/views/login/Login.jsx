@@ -1,5 +1,6 @@
 import { ErrorMessage, Field, Form, Formik } from 'formik';
 import React from 'react'
+import {handleFacebookLogin} from '../../firebase/auth';
 
 import { Link} from "react-router";
 
@@ -11,7 +12,7 @@ function Login() {
                     Login Form
                 </h2>
 
-                <button className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-300">
+                <button className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-300" onClick={handleFacebookLogin}>
                     Login with Facebook
                 </button>
             </div>
