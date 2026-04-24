@@ -56,6 +56,21 @@ export const getUserData = async (uid) => {
   }
 };
 
+export const getUsersInfo = async (uids) => {
+  try {
+    const uniqueUids = [...new Set(uids)];
+    const users = {};
+    for (const uid of uniqueUids) {
+      const data = await getUserData(uid);
+      if (data) users[uid] = data;
+    }
+    return users;
+  } catch (error) {
+    console.error('Error fetching users info:', error);
+    return {};
+  }
+};
+
 // ===== COMPANY FUNCTIONS =====
 export const createCompany = async (companyData) => {
   try {
@@ -182,6 +197,19 @@ export const updateTokenStatus = async (tokenId, updates) => {
   }
 };
 
+export const updateTokenSettings = async (tokenId, settings) => {
+  try {
+    const tokenRef = doc(db, 'tokens', tokenId);
+    await updateDoc(tokenRef, {
+      ...settings,
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error updating token settings:', error);
+    throw error;
+  }
+};
+
 export const incrementCurrentToken = async (tokenId) => {
   try {
     const tokenRef = doc(db, 'tokens', tokenId);
@@ -262,6 +290,10 @@ export const updateBookingStatus = async (bookingId, status) => {
     console.error('Error updating booking:', error);
     throw error;
   }
+};
+
+export const cancelBooking = async (bookingId) => {
+  return await updateBookingStatus(bookingId, 'cancelled');
 };
 
 export const subscribeToCompanyBookings = (companyId, callback) => {

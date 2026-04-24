@@ -1,66 +1,58 @@
-// Local Notification Service
-// This provides a fallback notification system when FCM is not available
-
-export const scheduleNotification = (title, options = {}, delayMs = 0) => {
-  setTimeout(() => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
-        icon: '/logo.png',
-        ...options,
-      });
-    } else if ('Notification' in window && Notification.permission !== 'denied') {
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') {
-          new Notification(title, {
-            icon: '/logo.png',
-            ...options,
-          });
-        }
-      });
-    }
-  }, delayMs);
-};
+/**
+ * Service to handle browser notifications
+ */
 
 export const requestNotificationPermission = async () => {
-  if ('Notification' in window && Notification.permission === 'default') {
+  if (!("Notification" in window)) {
+    console.warn("This browser does not support desktop notification");
+    return false;
+  }
+
+  if (Notification.permission === "granted") {
+    return true;
+  }
+
+  if (Notification.permission !== "denied") {
     const permission = await Notification.requestPermission();
-    return permission === 'granted';
+    return permission === "granted";
   }
-  return Notification.permission === 'granted';
+
+  return false;
 };
 
-// Calculate time until notification (10 minutes before token turn)
-export const calculateNotificationTime = (tokenNumber, currentToken, timePerToken) => {
-  const minutesUntilTurn = (tokenNumber - currentToken) * timePerToken;
-  const minutesForNotification = minutesUntilTurn - 10;
-  
-  if (minutesForNotification > 0) {
-    return minutesForNotification * 60 * 1000; // Convert to milliseconds
+export const sendNotification = (title, body, icon = '/favicon.svg') => {
+  if (Notification.permission === "granted") {
+    new Notification(title, {
+      body,
+      icon,
+      badge: icon,
+    });
   }
-  return 0;
 };
 
-// Send token update notification
-export const notifyTokenUpdate = (companyName, tokenNumber, waitTimeMinutes) => {
-  scheduleNotification(`${companyName} - Token Update`, {
-    body: `Your token #${tokenNumber} is ready. Wait time: ${waitTimeMinutes} minutes`,
-    tag: `token-${tokenNumber}`,
-  });
-};
+/**
+ * Check if a notification should be sent based on wait time
+ * @param {Object} booking User booking
+ * @param {Object} todayTokens Token status
+ */
+export const checkAndNotify = (booking, todayTokens) => {
+  if (!booking || !todayTokens || booking.status !== 'waiting') return;
 
-// Send turn notification
-export const notifyYourTurn = (companyName, tokenNumber) => {
-  scheduleNotification(`${companyName} - Your Turn!`, {
-    body: `Your token #${tokenNumber} - It's your turn now!`,
-    tag: `turn-${tokenNumber}`,
-    badge: '/badge.png',
-  });
-};
+  const timePerToken = todayTokens.estimatedTimePerToken || 10;
+  const currentToken = todayTokens.currentToken || 0;
+  const positionInQueue = booking.tokenNumber - currentToken;
 
-// Send booking confirmation
-export const notifyBookingConfirmed = (companyName, tokenNumber) => {
-  scheduleNotification('Booking Confirmed', {
-    body: `Your token #${tokenNumber} at ${companyName} has been booked`,
-    tag: `booking-${tokenNumber}`,
-  });
+  const estimatedWaitTime = positionInQueue * timePerToken;
+
+  // Notify if wait time is 10 minutes or less and not already notified
+  if (estimatedWaitTime <= 10 && estimatedWaitTime > 0) {
+    const notificationKey = `notified_${booking.id}_10min`;
+    if (!localStorage.getItem(notificationKey)) {
+      sendNotification(
+        "Your turn is approaching!",
+        `Estimated wait time: ${estimatedWaitTime} minutes for Token #${booking.tokenNumber}.`
+      );
+      localStorage.setItem(notificationKey, "true");
+    }
+  }
 };

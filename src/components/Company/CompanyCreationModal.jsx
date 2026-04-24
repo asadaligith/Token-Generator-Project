@@ -4,7 +4,9 @@ import * as Yup from 'yup';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { createCompany } from '../../services/db.js';
 import { uploadCertificate } from '../../services/storage.js';
-import { FaTimes, FaMapMarkerAlt, FaImage } from 'react-icons/fa';
+import { searchPlaces } from '../../services/foursquare.js';
+import MapDisplay from '../Common/MapDisplay.jsx';
+import { FaTimes, FaMapMarkerAlt, FaImage, FaSearch } from 'react-icons/fa';
 
 const CompanySchema = Yup.object().shape({
   name: Yup.string()
@@ -24,7 +26,9 @@ export const CompanyCreationModal = ({ isOpen, onClose, onSuccess }) => {
   const [certificates, setCertificates] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [addressSearch, setAddressSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
 
   const handleCertificateAdd = (e) => {
     const files = Array.from(e.target.files);
@@ -37,6 +41,31 @@ export const CompanyCreationModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleRemoveCertificate = (index) => {
     setCertificates(certificates.filter((_, i) => i !== index));
+  };
+
+  const handleAddressSearch = async () => {
+    if (!addressSearch.trim()) return;
+    try {
+      setSearching(true);
+      const results = await searchPlaces(addressSearch);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search failed:', error);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSelectLocation = (place) => {
+    const location = {
+      name: place.name || place.location?.formatted_address,
+      address: place.location?.formatted_address,
+      lat: place.geocodes?.main?.latitude,
+      lng: place.geocodes?.main?.longitude,
+    };
+    setSelectedLocation(location);
+    setSearchResults([]);
+    setAddressSearch('');
   };
 
   const handleSubmit = async (values, { setSubmitting }) => {
@@ -147,31 +176,72 @@ export const CompanyCreationModal = ({ isOpen, onClose, onSuccess }) => {
               </div>
 
               {/* Address Picker */}
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
-                  <FaMapMarkerAlt /> Address
+              <div className="space-y-4">
+                <label className="block text-gray-700 font-semibold flex items-center gap-2">
+                  <FaMapMarkerAlt /> Address (Search via Foursquare)
                 </label>
-                {selectedLocation ? (
-                  <div className="bg-green-50 border border-green-300 p-3 rounded-lg flex justify-between items-center">
-                    <span className="text-gray-700">{selectedLocation.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedLocation(null)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <FaTimes />
-                    </button>
+                
+                {!selectedLocation ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Search for address (e.g., Lucky One Mall)"
+                        value={addressSearch}
+                        onChange={(e) => setAddressSearch(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddressSearch())}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddressSearch}
+                        disabled={searching}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                      >
+                        <FaSearch />
+                      </button>
+                    </div>
+
+                    {searchResults.length > 0 && (
+                      <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white divide-y">
+                        {searchResults.map((result, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handleSelectLocation(result)}
+                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition"
+                          >
+                            <p className="font-bold text-gray-800">{result.name}</p>
+                            <p className="text-sm text-gray-500">{result.location?.formatted_address}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-sm mb-2">Manual address entry (Foursquare API integration for search coming soon)</p>
+                  <div className="space-y-4">
+                    <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-lg flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-indigo-900">{selectedLocation.name}</p>
+                        <p className="text-sm text-indigo-700">{selectedLocation.address}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLocation(null)}
+                        className="text-red-500 hover:text-red-700 p-2"
+                      >
+                        <FaTimes size={18} />
+                      </button>
+                    </div>
+                    
+                    <MapDisplay 
+                      position={[selectedLocation.lat, selectedLocation.lng]} 
+                      markerText={selectedLocation.name}
+                      height="200px"
+                    />
+                  </div>
                 )}
-                <input
-                  type="text"
-                  placeholder="Location name"
-                  value={selectedLocation?.name || ''}
-                  onChange={(e) => setSelectedLocation({ ...selectedLocation, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                <ErrorMessage name="address" component="div" className="text-red-500 text-sm mt-1" />
               </div>
 
               {/* Certificates */}

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { getAllCompanies, getUserBookings } from '../../services/db.js';
+import { getAllCompanies, getUserBookings, cancelBooking, subscribeToTokens } from '../../services/db.js';
 import { handleLogout } from '../../firebase/auth.js';
 import { FaSearch, FaSignOutAlt, FaTicketAlt } from 'react-icons/fa';
+import { requestNotificationPermission, checkAndNotify } from '../../services/notifications.js';
 
 function UserDashboard() {
   const navigate = useNavigate();
@@ -30,12 +31,34 @@ function UserDashboard() {
     // Load data for user once role is confirmed
     if (userData?.role === 'user') {
       loadData();
+      requestNotificationPermission();
     } else {
       // If userData exists but has no role, redirect to home to select one
       console.log('User has no role, redirecting to selection page');
       navigate('/home');
     }
   }, [user, userData, navigate]);
+
+  // Set up listeners for notifications on waiting bookings
+  useEffect(() => {
+    if (!user || bookings.length === 0) return;
+
+    const unsubscribers = [];
+    const waiting = bookings.filter(b => b.status === 'waiting');
+
+    waiting.forEach(booking => {
+      const unsub = subscribeToTokens(booking.companyId, (tokens) => {
+        const today = new Date().toISOString().split('T')[0];
+        const todayToken = tokens.find(t => t.date === today);
+        if (todayToken) {
+          checkAndNotify(booking, todayToken);
+        }
+      });
+      unsubscribers.push(unsub);
+    });
+
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, [user, bookings]);
 
   useEffect(() => {
     // Filter companies based on search term
@@ -60,13 +83,24 @@ function UserDashboard() {
       setLoading(false);
     }
   };
-
   const handleLogoutClick = async () => {
     try {
       await handleLogout();
       navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
+    }
+  };
+
+  const handleCancelBooking = async (bookingId) => {
+    if (window.confirm('Are you sure you want to cancel this booking?')) {
+      try {
+        await cancelBooking(bookingId);
+        loadData();
+      } catch (error) {
+        console.error('Error cancelling booking:', error);
+        alert('Failed to cancel booking');
+      }
     }
   };
 
@@ -137,6 +171,17 @@ function UserDashboard() {
                       }`}>
                         {booking.status.toUpperCase()}
                       </p>
+                      {booking.status === 'waiting' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelBooking(booking.id);
+                          }}
+                          className="mt-2 text-xs text-red-600 hover:underline font-bold"
+                        >
+                          Cancel Token
+                        </button>
+                      )}
                     </div>
                   ))
                 )}

@@ -3,7 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { getCompanyById, getTodayTokens, createBooking, subscribeToTokens } from '../../services/db.js';
 import { uploadPatientImage } from '../../services/storage.js';
-import { FaArrowLeft, FaMapMarkerAlt, FaClock, FaUsers, FaImage } from 'react-icons/fa';
+import MapDisplay from '../../components/Common/MapDisplay.jsx';
+import { FaArrowLeft, FaMapMarkerAlt, FaClock, FaUsers, FaImage, FaMap } from 'react-icons/fa';
 
 function CompanyDetails() {
   const { companyId } = useParams();
@@ -63,8 +64,16 @@ function CompanyDetails() {
   const calculateEstimatedWaitTime = () => {
     if (!todayTokens) return 'N/A';
     const timePerToken = todayTokens.estimatedTimePerToken || 10;
-    const waitTime = (todayTokens.totalTokens - (todayTokens.currentToken || 0)) * timePerToken;
-    return waitTime > 0 ? `~${waitTime} min` : 'Available now';
+    
+    // Position of the NEXT token to be issued
+    const nextTokenNumber = availableTokens > 0 
+      ? (todayTokens.totalTokens - availableTokens) + 1 
+      : todayTokens.totalTokens + 1;
+    
+    const positionInQueue = nextTokenNumber - (todayTokens.currentToken || 0);
+    const waitTime = positionInQueue * timePerToken;
+    
+    return waitTime > 0 ? `~${waitTime} min` : 'Soon';
   };
 
   const handleBookToken = async () => {
@@ -165,9 +174,20 @@ function CompanyDetails() {
 
           <div className="flex items-start gap-2">
             <FaMapMarkerAlt className="text-red-500 mt-1" />
-            <div>
+            <div className="flex-1">
               <p className="text-gray-600 text-sm font-semibold mb-1">LOCATION</p>
               <p className="text-lg text-gray-800">{company.address?.name || 'N/A'}</p>
+              <p className="text-sm text-gray-500 mb-4">{company.address?.address}</p>
+              
+              {company.address?.lat && company.address?.lng && (
+                <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <MapDisplay 
+                    position={[company.address.lat, company.address.lng]} 
+                    markerText={company.name}
+                    height="250px"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
