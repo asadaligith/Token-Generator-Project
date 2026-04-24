@@ -23,6 +23,7 @@ import {
 import {
   getAuth,
   FacebookAuthProvider,
+  signInWithCredential,
   signInWithPopup,
   signOut,
   onAuthStateChanged,
@@ -66,6 +67,8 @@ const messaging = getMessaging(app);
 export {
   auth,
   provider,
+  FacebookAuthProvider,
+  signInWithCredential,
   signInWithPopup,
   getRedirectResult,
   signOut,

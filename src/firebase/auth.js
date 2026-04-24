@@ -13,10 +13,48 @@ import {
   serverTimestamp,
   signOut,
   getRedirectResult,
+  signInWithCredential,
+  FacebookAuthProvider,
 } from './config.js';
-import { FacebookAuthProvider } from 'firebase/auth';
+import { facebookLogin, initFacebookSDK } from '../utils/facebookSDK.js';
 
 const handleFacebookLogin = async () => {
+  // Try SDK login first as it is more robust for cross-domain issues
+  try {
+    return await handleFacebookLoginWithSDK();
+  } catch (error) {
+    console.warn("SDK login failed, falling back to Firebase Popup:", error);
+    return await handleFacebookLoginFirebase();
+  }
+};
+
+const handleFacebookLoginWithSDK = async () => {
+  try {
+    // Ensure SDK is initialized
+    await initFacebookSDK();
+    
+    // Trigger Facebook login
+    const authResponse = await facebookLogin();
+    const accessToken = authResponse.accessToken;
+    
+    // Create Firebase credential
+    const credential = FacebookAuthProvider.credential(accessToken);
+    
+    // Sign in to Firebase
+    const result = await signInWithCredential(auth, credential);
+    const user = result.user;
+    
+    // Save user data to Firestore
+    await saveUserDataToFirestore(user);
+    
+    return result;
+  } catch (error) {
+    console.error("Facebook SDK Login Error:", error);
+    throw error;
+  }
+};
+
+const handleFacebookLoginFirebase = async () => {
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
@@ -107,6 +145,7 @@ const handleLogout = async () => {
 
 export {
   handleFacebookLogin,
+  handleFacebookLoginWithSDK,
   handleRedirectResult,
   handleLogout,
   saveUserDataToFirestore,

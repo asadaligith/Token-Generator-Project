@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { handleFacebookLogin, handleRedirectResult } from '../../firebase/auth.js';
+import { initFacebookSDK } from '../../utils/facebookSDK.js';
 import { FaFacebook } from 'react-icons/fa';
 
 function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  // Check for redirect result on mount
+  // Check for redirect result on mount and pre-load SDK
   useEffect(() => {
+    // Pre-load SDK
+    initFacebookSDK().catch(err => console.warn("Failed to pre-load FB SDK:", err));
+
     const checkRedirect = async () => {
       try {
         setLoading(true);
