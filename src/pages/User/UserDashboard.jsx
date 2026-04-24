@@ -17,13 +17,18 @@ function UserDashboard() {
   useEffect(() => {
     if (!user) return;
 
-    // Redirect if not a user
-    if (userData?.role !== 'user') {
+    // Redirect if role is set but not 'user' (only if we know the role)
+    if (userData?.role && userData.role !== 'user') {
+      console.log('User has different role:', userData.role);
       navigate('/home');
+      return;
     }
 
-    loadData();
-  }, [user, userData]);
+    // Load data for user
+    if (userData?.role === 'user') {
+      loadData();
+    }
+  }, [user, userData?.role, navigate]);
 
   useEffect(() => {
     // Filter companies based on search term

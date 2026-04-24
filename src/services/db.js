@@ -22,8 +22,23 @@ import {
 export const updateUserRole = async (uid, role) => {
   try {
     const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, { role });
-    console.log('User role updated');
+    
+    // First, try to update the document
+    try {
+      await updateDoc(userRef, { role });
+      console.log('User role updated');
+    } catch (error) {
+      // If document doesn't exist, create it
+      if (error.code === 'not-found') {
+        console.log('User document not found, creating it with role...');
+        await setDoc(userRef, { 
+          role
+        }, { merge: true });
+        console.log('User role set (document created)');
+      } else {
+        throw error;
+      }
+    }
   } catch (error) {
     console.error('Error updating user role:', error);
     throw error;

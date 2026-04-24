@@ -20,13 +20,18 @@ function CompanyDashboard() {
   useEffect(() => {
     if (!user) return;
 
-    // Redirect if not a company
-    if (userData?.role !== 'company') {
+    // Redirect if role is set but not 'company' (only if we know the role)
+    if (userData?.role && userData.role !== 'company') {
+      console.log('User has different role:', userData.role);
       navigate('/home');
+      return;
     }
 
-    loadCompanies();
-  }, [user, userData]);
+    // Load companies for company user
+    if (userData?.role === 'company') {
+      loadCompanies();
+    }
+  }, [user, userData?.role, navigate]);
 
   useEffect(() => {
     if (selectedCompany) {

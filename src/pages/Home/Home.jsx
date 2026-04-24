@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { updateUserRole } from '../../services/db.js';
@@ -10,10 +10,26 @@ function Home() {
   const { user, userData } = useAuth();
   const [loading, setLoading] = useState(false);
 
+  // Move redirect logic to useEffect to avoid React warning
+  useEffect(() => {
+    // Only redirect if user has a role
+    if (userData?.role) {
+      console.log('User already has role:', userData.role);
+      if (userData.role === 'company') {
+        navigate('/company/dashboard');
+      } else if (userData.role === 'user') {
+        navigate('/user/dashboard');
+      }
+    }
+  }, [userData?.role, navigate]);
+
   const handleRoleSelection = async (role) => {
     try {
       setLoading(true);
+      console.log(`Setting role: ${role} for user: ${user?.uid}`);
+      
       await updateUserRole(user.uid, role);
+      console.log('Role set successfully, navigating...');
       
       // Navigate based on role
       if (role === 'company') {
@@ -23,8 +39,7 @@ function Home() {
       }
     } catch (error) {
       console.error('Error setting role:', error);
-      alert('Failed to set role. Please try again.');
-    } finally {
+      alert('Failed to set role. Please try again. Error: ' + error.message);
       setLoading(false);
     }
   };
@@ -37,15 +52,6 @@ function Home() {
       console.error('Logout failed:', error);
     }
   };
-
-  // If user already has a role, redirect
-  if (userData?.role) {
-    if (userData.role === 'company') {
-      navigate('/company/dashboard');
-    } else if (userData.role === 'user') {
-      navigate('/user/dashboard');
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100">

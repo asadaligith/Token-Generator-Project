@@ -46,15 +46,17 @@ const handleFacebookLogin = async () => {
 const saveUserDataToFirestore = async (user) => {
   try {
     const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDocs(query(collection(db, "users"), where("uid", "==", user.uid)));
+    
+    // Check if user document already exists
+    const existingUserSnap = await getDocs(query(collection(db, "users"), where("uid", "==", user.uid)));
 
-    // If user already exists, don't overwrite
-    if (!userSnap.empty) {
+    // If user already exists, just return
+    if (!existingUserSnap.empty) {
       console.log("User already exists in database");
       return;
     }
 
-    // Save new user
+    // Save new user with merge option to ensure creation
     await setDoc(userRef, {
       uid: user.uid,
       name: user.displayName || "",
@@ -62,12 +64,14 @@ const saveUserDataToFirestore = async (user) => {
       picture: user.photoURL || "",
       role: null, // To be set in Home page
       createdAt: serverTimestamp(),
-    });
+    }, { merge: false }); // Don't merge, create fresh
 
-    console.log("User saved to Firestore");
+    console.log("User saved to Firestore successfully");
   } catch (error) {
-    console.error("Error saving user:", error);
-    throw error;
+    console.error("Error saving user to Firestore:", error);
+    // Don't throw - allow login to proceed even if document creation fails
+    // The updateUserRole function will handle creation if needed
+    console.warn("Continuing with login despite document creation error");
   }
 };
 
