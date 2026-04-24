@@ -40,6 +40,13 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// Check if all config values are present
+const isConfigValid = Object.values(firebaseConfig).every(value => value !== undefined && value !== '');
+
+if (!isConfigValid) {
+  console.error('Firebase configuration is incomplete. Check your environment variables.');
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
