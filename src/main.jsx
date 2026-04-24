@@ -6,7 +6,7 @@ import { BrowserRouter } from "react-router";
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter basename="/token-management-system">
+    <BrowserRouter basename="/Token-Generator-Project/">
       <App />
     </BrowserRouter>
   </StrictMode>
