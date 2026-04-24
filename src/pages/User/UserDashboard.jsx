@@ -17,18 +17,25 @@ function UserDashboard() {
   useEffect(() => {
     if (!user) return;
 
-    // Redirect if role is set but not 'user' (only if we know the role)
+    // Wait for userData to be available if it's currently null
+    if (userData === null) return;
+
+    // Redirect if role is set but not 'user'
     if (userData?.role && userData.role !== 'user') {
       console.log('User has different role:', userData.role);
       navigate('/home');
       return;
     }
 
-    // Load data for user
+    // Load data for user once role is confirmed
     if (userData?.role === 'user') {
       loadData();
+    } else {
+      // If userData exists but has no role, redirect to home to select one
+      console.log('User has no role, redirecting to selection page');
+      navigate('/home');
     }
-  }, [user, userData?.role, navigate]);
+  }, [user, userData, navigate]);
 
   useEffect(() => {
     // Filter companies based on search term
