@@ -1,11 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { handleFacebookLogin } from '../../firebase/auth.js';
+import { handleFacebookLogin, handleRedirectResult } from '../../firebase/auth.js';
 import { FaFacebook } from 'react-icons/fa';
 
 function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+
+  // Check for redirect result on mount
+  useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        setLoading(true);
+        const result = await handleRedirectResult();
+        if (result) {
+          console.log("Login successful via redirect");
+          navigate('/home');
+        }
+      } catch (error) {
+        console.error("Redirect check failed:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkRedirect();
+  }, [navigate]);
 
   const handleLogin = async () => {
     try {

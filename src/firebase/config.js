@@ -26,6 +26,9 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  browserLocalPersistence,
+  setPersistence,
+  getRedirectResult,
 } from "firebase/auth";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
@@ -50,6 +53,11 @@ if (!isConfigValid) {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+// Set explicit persistence to local storage to handle cross-site storage issues on mobile/Safari
+setPersistence(auth, browserLocalPersistence).catch((err) => {
+  console.error("Auth persistence error:", err);
+});
 const provider = new FacebookAuthProvider();
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -59,6 +67,7 @@ export {
   auth,
   provider,
   signInWithPopup,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   db,
