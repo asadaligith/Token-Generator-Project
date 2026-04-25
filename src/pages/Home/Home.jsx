@@ -10,38 +10,14 @@ function Home() {
   const { user, userData } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  // Move redirect logic to useEffect to avoid React warning
+  // No redirect logic needed - user can choose either dashboard from Home
   useEffect(() => {
-    // Only redirect if user has a role
-    if (userData?.role) {
-      console.log('User already has role:', userData.role);
-      if (userData.role === 'company') {
-        navigate('/company/dashboard');
-      } else if (userData.role === 'user') {
-        navigate('/user/dashboard');
-      }
-    }
-  }, [userData?.role, navigate]);
+    console.log('Home loaded, user:', user?.displayName);
+  }, [user]);
 
-  const handleRoleSelection = async (role) => {
-    try {
-      setLoading(true);
-      console.log(`Setting role: ${role} for user: ${user?.uid}`);
-      
-      await updateUserRole(user.uid, role);
-      console.log('Role set successfully, navigating...');
-      
-      // Navigate based on role
-      if (role === 'company') {
-        navigate('/company/dashboard');
-      } else if (role === 'user') {
-        navigate('/user/dashboard');
-      }
-    } catch (error) {
-      console.error('Error setting role:', error);
-      alert('Failed to set role. Please try again. Error: ' + error.message);
-      setLoading(false);
-    }
+  const handleNavigate = (path) => {
+    console.log('Navigating to:', path);
+    navigate(path);
   };
 
   const handleLogoutClick = async () => {
@@ -80,43 +56,45 @@ function Home() {
         </div>
 
         {/* Role Selection Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Company Card */}
           <button
-            onClick={() => handleRoleSelection('company')}
-            disabled={loading}
-            className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => handleNavigate('/company/dashboard')}
+            className="bg-white rounded-2xl shadow-xl p-10 hover:shadow-2xl transition transform hover:-translate-y-2 border-b-8 border-indigo-600 group"
           >
             <div className="text-center">
-              <FaBuilding className="text-6xl text-indigo-600 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                Are you a company?
+              <div className="bg-indigo-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-indigo-200 transition">
+                <FaBuilding className="text-5xl text-indigo-600" />
+              </div>
+              <h3 className="text-3xl font-extrabold text-gray-800 mb-4">
+                Company Portal
               </h3>
-              <p className="text-gray-600 mb-6">
-                Manage your tokens and patient queue
+              <p className="text-gray-600 mb-8 text-lg">
+                Register your company, manage token limits, and view your patient queue.
               </p>
-              <span className="text-indigo-600 font-semibold">
-                {loading ? 'Loading...' : 'Continue →'}
+              <span className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-700 transition">
+                Manage My Business
               </span>
             </div>
           </button>
 
           {/* User Card */}
           <button
-            onClick={() => handleRoleSelection('user')}
-            disabled={loading}
-            className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => handleNavigate('/user/dashboard')}
+            className="bg-white rounded-2xl shadow-xl p-10 hover:shadow-2xl transition transform hover:-translate-y-2 border-b-8 border-green-500 group"
           >
             <div className="text-center">
-              <FaUser className="text-6xl text-green-600 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                Finding/Waiting for Tokens?
+              <div className="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-green-200 transition">
+                <FaUser className="text-5xl text-green-600" />
+              </div>
+              <h3 className="text-3xl font-extrabold text-gray-800 mb-4">
+                User Portal
               </h3>
-              <p className="text-gray-600 mb-6">
-                Search and book tokens from companies
+              <p className="text-gray-600 mb-8 text-lg">
+                Search for nearby clinics/offices, check wait times, and book your tokens.
               </p>
-              <span className="text-green-600 font-semibold">
-                {loading ? 'Loading...' : 'Continue →'}
+              <span className="inline-block bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-green-600 transition">
+                Book a Token
               </span>
             </div>
           </button>

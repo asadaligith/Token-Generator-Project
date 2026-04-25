@@ -32,15 +32,23 @@ function Login() {
 
   const handleLogin = async () => {
     try {
+      console.log('Login button clicked, setting loading to true...');
       setLoading(true);
+      
+      console.log('Starting handleFacebookLogin flow...');
       const result = await handleFacebookLogin();
+      
       if (result) {
+        console.log('Login result successful, navigating to /home');
         navigate('/home');
+      } else {
+        console.warn('Login result was empty/cancelled');
       }
     } catch (error) {
-      console.error('Login failed:', error);
-      alert('Login failed. Please try again.');
+      console.error('Detailed login error caught in handleLogin:', error);
+      alert(`Login failed: ${error.message || 'Unknown error'}. Please check console.`);
     } finally {
+      console.log('Login flow finished, setting loading to false');
       setLoading(false);
     }
   };

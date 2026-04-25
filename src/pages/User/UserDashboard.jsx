@@ -17,27 +17,9 @@ function UserDashboard() {
 
   useEffect(() => {
     if (!user) return;
-
-    // Wait for userData to be available if it's currently null
-    if (userData === null) return;
-
-    // Redirect if role is set but not 'user'
-    if (userData?.role && userData.role !== 'user') {
-      console.log('User has different role:', userData.role);
-      navigate('/home');
-      return;
-    }
-
-    // Load data for user once role is confirmed
-    if (userData?.role === 'user') {
-      loadData();
-      requestNotificationPermission();
-    } else {
-      // If userData exists but has no role, redirect to home to select one
-      console.log('User has no role, redirecting to selection page');
-      navigate('/home');
-    }
-  }, [user, userData, navigate]);
+    loadData();
+    requestNotificationPermission();
+  }, [user]);
 
   // Set up listeners for notifications on waiting bookings
   useEffect(() => {

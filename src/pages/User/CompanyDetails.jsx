@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { getCompanyById, getTodayTokens, createBooking, subscribeToTokens } from '../../services/db.js';
-import { uploadPatientImage } from '../../services/storage.js';
+
 import MapDisplay from '../../components/Common/MapDisplay.jsx';
-import { FaArrowLeft, FaMapMarkerAlt, FaClock, FaUsers, FaImage, FaMap } from 'react-icons/fa';
+import { FaArrowLeft, FaMapMarkerAlt, FaClock, FaUsers, FaMap } from 'react-icons/fa';
 
 function CompanyDetails() {
   const { companyId } = useParams();
@@ -15,7 +15,6 @@ function CompanyDetails() {
   const [company, setCompany] = useState(location.state?.company || null);
   const [todayTokens, setTodayTokens] = useState(null);
   const [loading, setLoading] = useState(!company);
-  const [patientImage, setPatientImage] = useState(null);
   const [booking, setBooking] = useState(false);
 
   useEffect(() => {
@@ -89,23 +88,14 @@ function CompanyDetails() {
 
     try {
       setBooking(true);
-      let patientImageUrl = '';
-
-      if (patientImage) {
-        patientImageUrl = await uploadPatientImage(patientImage, user.uid);
-      }
 
       const bookingData = {
         companyId: company.id,
         userId: user.uid,
-        patientImage: patientImageUrl,
       };
 
       const result = await createBooking(bookingData);
       alert(`Token booked successfully! Your token number is #${result.tokenNumber}`);
-      
-      // Reset form
-      setPatientImage(null);
       
       // Navigate back or refresh
       navigate('/user/dashboard');
@@ -191,22 +181,7 @@ function CompanyDetails() {
             </div>
           </div>
 
-          {/* Certificates */}
-          {company.certificates && company.certificates.length > 0 && (
-            <div className="mt-6 pt-6 border-t">
-              <p className="text-gray-600 text-sm font-semibold mb-3">CERTIFICATES</p>
-              <div className="grid grid-cols-3 gap-4">
-                {company.certificates.map((cert, index) => (
-                  <img
-                    key={index}
-                    src={cert}
-                    alt={`Certificate ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg border border-gray-300"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
 
         {/* Token Status */}
@@ -253,24 +228,7 @@ function CompanyDetails() {
             <h2 className="text-xl font-bold text-gray-800 mb-4">Book a Token</h2>
 
             <div className="space-y-4">
-              {/* Patient Image Upload */}
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
-                  <FaImage /> Patient Image (Optional)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setPatientImage(e.target.files?.[0] || null)}
-                  className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  disabled={booking}
-                />
-                {patientImage && (
-                  <p className="text-green-600 text-sm mt-2">
-                    ✓ Image selected: {patientImage.name}
-                  </p>
-                )}
-              </div>
+
 
               {/* Book Button */}
               <button

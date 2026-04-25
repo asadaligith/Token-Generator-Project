@@ -16,22 +16,37 @@ export const AuthProvider = ({ children }) => {
         // Setup real-time listener for user data
         try {
           const userDocRef = doc(db, 'users', authUser.uid);
+          const firestoreUrl = `https://console.firebase.google.com/project/${db.app.options.projectId}/firestore/data/~2Fusers~2F${authUser.uid}`;
+          
+          console.log('--- FIRESTORE DEBUG ---');
+          console.log('Project ID:', db.app.options.projectId);
+          console.log('👉 CLICK THIS LINK TO SEE YOUR DATA:', firestoreUrl);
+          console.log('-----------------------');
           
           // Use onSnapshot for real-time updates
           const unsubscribeSnapshot = onSnapshot(
             userDocRef,
             (userDocSnap) => {
               if (userDocSnap.exists()) {
-                console.log('User data updated:', userDocSnap.data());
+                console.log('User data found in Firestore:', userDocSnap.data());
                 setUserData(userDocSnap.data());
               } else {
-                console.log('User document not found, will be created on first role selection');
+                console.log('No Firestore document yet for UID:', authUser.uid);
                 setUserData(null);
               }
               setLoading(false);
             },
             (error) => {
-              console.error('Error listening to user data:', error);
+              console.error('CRITICAL PERMISSION ERROR:', error.code, error.message);
+              console.warn('Check your Firestore Rules at: https://console.firebase.google.com/project/' + db.app.options.projectId + '/firestore/rules');
+              
+              // CRITICAL FIX: Don't stay in loading state!
+              // Provide a dummy userData so the app can at least render
+              setUserData({ 
+                uid: authUser.uid, 
+                name: authUser.displayName || 'User',
+                isGuest: true 
+              });
               setLoading(false);
             }
           );

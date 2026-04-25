@@ -31,7 +31,7 @@ import {
   setPersistence,
   getRedirectResult,
 } from "firebase/auth";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { getStorage, ref, uploadBytes, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 // Your web app's Firebase configuration
@@ -97,6 +97,7 @@ export {
   Timestamp,
   ref,
   uploadBytes,
+  uploadString,
   getDownloadURL,
   deleteObject,
 };

@@ -19,10 +19,15 @@ import {
 import { facebookLogin, initFacebookSDK } from '../utils/facebookSDK.js';
 
 const handleFacebookLogin = async () => {
-  // Try SDK login first as it is more robust for cross-domain issues
   try {
     return await handleFacebookLoginWithSDK();
   } catch (error) {
+    // If it's a permission error, don't fallback/retry, it will just fail again
+    if (error.code === 'permission-denied' || error.message?.includes('permissions')) {
+      console.error("Critical Permission Error during login. Stopping loop.");
+      throw error;
+    }
+    
     console.warn("SDK login failed, falling back to Firebase Popup:", error);
     return await handleFacebookLoginFirebase();
   }
@@ -30,24 +35,41 @@ const handleFacebookLogin = async () => {
 
 const handleFacebookLoginWithSDK = async () => {
   try {
-    // Ensure SDK is initialized
+    console.log("Initializing Facebook SDK...");
+    // Fallback for localhost (Facebook SDK blocks HTTP)
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (isLocalhost) {
+      console.log('Localhost detected, using Firebase Popup fallback...');
+      const result = await signInWithPopup(auth, provider);
+      await saveUserDataToFirestore(result.user);
+      return result;
+    }
+
+    // Production flow (Facebook SDK + Manual Credential)
     await initFacebookSDK();
     
-    // Trigger Facebook login
-    const authResponse = await facebookLogin();
-    const accessToken = authResponse.accessToken;
-    
-    // Create Firebase credential
-    const credential = FacebookAuthProvider.credential(accessToken);
-    
-    // Sign in to Firebase
-    const result = await signInWithCredential(auth, credential);
-    const user = result.user;
-    
-    // Save user data to Firestore
-    await saveUserDataToFirestore(user);
-    
-    return result;
+    return new Promise((resolve, reject) => {
+      window.FB.login(async (response) => {
+        if (response.authResponse) {
+          try {
+            const { accessToken } = response.authResponse;
+            const credential = FacebookAuthProvider.credential(accessToken);
+            const result = await signInWithCredential(auth, credential);
+            
+            // CRITICAL: Save to Firestore BEFORE resolving
+            await saveUserDataToFirestore(result.user);
+            
+            resolve(result);
+          } catch (error) {
+            console.error('Firebase exchange error:', error);
+            reject(error);
+          }
+        } else {
+          reject(new Error('User cancelled login or did not fully authorize.'));
+        }
+      }, { scope: 'email,public_profile' });
+    });
   } catch (error) {
     console.error("Facebook SDK Login Error:", error);
     throw error;
@@ -84,12 +106,15 @@ const handleFacebookLoginFirebase = async () => {
 
 const handleRedirectResult = async () => {
   try {
+    console.log("Checking for Firebase redirect result...");
     const result = await getRedirectResult(auth);
     if (result) {
+      console.log("Found redirect result:", result.user.uid);
       const user = result.user;
       await saveUserDataToFirestore(user);
       return result;
     }
+    console.log("No redirect result found.");
     return null;
   } catch (error) {
     console.error("Error processing redirect result:", error);
@@ -105,31 +130,25 @@ const saveUserDataToFirestore = async (user) => {
   try {
     const userRef = doc(db, "users", user.uid);
     
-    // Check if user document already exists
-    const existingUserSnap = await getDocs(query(collection(db, "users"), where("uid", "==", user.uid)));
-
-    // If user already exists, just return
-    if (!existingUserSnap.empty) {
-      console.log("User already exists in database");
-      return;
-    }
-
-    // Save new user with merge option to ensure creation
-    await setDoc(userRef, {
+    const userData = {
       uid: user.uid,
       name: user.displayName || "",
       email: user.email || "",
       picture: user.photoURL || "",
-      role: null, // To be set in Home page
       createdAt: serverTimestamp(),
-    }, { merge: false }); // Don't merge, create fresh
+    };
 
-    console.log("User saved to Firestore successfully");
+    // Add a small retry/delay to ensure auth state is fully propagated
+    await setDoc(userRef, userData, { merge: true });
+    console.log('User document successfully saved/updated in Firestore');
   } catch (error) {
-    console.error("Error saving user to Firestore:", error);
-    // Don't throw - allow login to proceed even if document creation fails
-    // The updateUserRole function will handle creation if needed
-    console.warn("Continuing with login despite document creation error");
+    if (error.code === 'permission-denied') {
+      console.warn('PERMISSION DENIED: Could not save user data, but continuing login...', error.message);
+      // We don't throw here so the user can still log in
+      return;
+    }
+    console.error('Error saving user to Firestore:', error);
+    throw error;
   }
 };
 

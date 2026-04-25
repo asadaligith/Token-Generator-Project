@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router';
 import { AuthProvider } from './context/AuthContext.jsx';
-import { ProtectedRoute, PublicRoute, RoleRoute } from './routes/ProtectedRoute.jsx';
+import { ProtectedRoute, PublicRoute } from './routes/ProtectedRoute.jsx';
 
 // Pages
 import Login from './views/login/Login.jsx';
@@ -34,31 +34,30 @@ function App() {
           }
         />
 
-        {/* Company Routes */}
+        {/* Unified Dashboard Routes */}
         <Route
           path="/company/dashboard"
           element={
-            <RoleRoute requiredRole="company">
+            <ProtectedRoute>
               <CompanyDashboard />
-            </RoleRoute>
+            </ProtectedRoute>
           }
         />
 
-        {/* User Routes */}
         <Route
           path="/user/dashboard"
           element={
-            <RoleRoute requiredRole="user">
+            <ProtectedRoute>
               <UserDashboard />
-            </RoleRoute>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/user/company/:companyId"
           element={
-            <RoleRoute requiredRole="user">
+            <ProtectedRoute>
               <CompanyDetails />
-            </RoleRoute>
+            </ProtectedRoute>
           }
         />
 

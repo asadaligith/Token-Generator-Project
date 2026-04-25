@@ -3,9 +3,21 @@
  */
 
 export const initFacebookSDK = () => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    // If already initialized, resolve immediately
+    if (window.FB) {
+      resolve();
+      return;
+    }
+
+    // Set timeout to avoid hanging forever
+    const timeout = setTimeout(() => {
+      reject(new Error('Facebook SDK load timeout'));
+    }, 10000);
+
     // Wait for SDK to load
     window.fbAsyncInit = function() {
+      clearTimeout(timeout);
       window.FB.init({
         appId      : '1623127182236806', // Your Facebook App ID
         cookie     : true,
@@ -15,7 +27,12 @@ export const initFacebookSDK = () => {
       resolve();
     };
 
-    // Load SDK script
+    // Load SDK script if not already present
+    if (document.getElementById('facebook-jssdk')) {
+      // If script exists but FB is not ready, we wait for fbAsyncInit
+      return;
+    }
+
     (function(d, s, id) {
       var js, fjs = d.getElementsByTagName(s)[0];
       if (d.getElementById(id)) return;

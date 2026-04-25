@@ -23,25 +23,11 @@ const CompanySchema = Yup.object().shape({
 
 export const CompanyCreationModal = ({ isOpen, onClose, onSuccess }) => {
   const { user } = useAuth();
-  const [certificates, setCertificates] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [addressSearch, setAddressSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-
-  const handleCertificateAdd = (e) => {
-    const files = Array.from(e.target.files);
-    if (certificates.length + files.length > 3) {
-      alert('Maximum 3 certificates allowed');
-      return;
-    }
-    setCertificates([...certificates, ...files]);
-  };
-
-  const handleRemoveCertificate = (index) => {
-    setCertificates(certificates.filter((_, i) => i !== index));
-  };
 
   const handleAddressSearch = async () => {
     if (!addressSearch.trim()) return;
@@ -56,7 +42,7 @@ export const CompanyCreationModal = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
-  const handleSelectLocation = (place) => {
+  const handleSelectLocation = (place, setFieldValue) => {
     const location = {
       name: place.name || place.location?.formatted_address,
       address: place.location?.formatted_address,
@@ -64,6 +50,11 @@ export const CompanyCreationModal = ({ isOpen, onClose, onSuccess }) => {
       lng: place.geocodes?.main?.longitude,
     };
     setSelectedLocation(location);
+    setFieldValue('address', {
+      name: location.name,
+      lat: location.lat,
+      lng: location.lng
+    });
     setSearchResults([]);
     setAddressSearch('');
   };
@@ -72,28 +63,18 @@ export const CompanyCreationModal = ({ isOpen, onClose, onSuccess }) => {
     try {
       setUploading(true);
 
-      // Upload certificates
-      const certificateUrls = [];
-      for (const cert of certificates) {
-        const url = await uploadCertificate(cert, user.uid);
-        certificateUrls.push(url);
-      }
-
-      // Create company
       const companyData = {
         ownerId: user.uid,
         name: values.name,
         since: values.since,
         timings: values.timings,
         address: selectedLocation || values.address,
-        certificates: certificateUrls,
       };
 
       await createCompany(companyData);
       alert('Company created successfully!');
       onSuccess?.();
       onClose();
-      setCertificates([]);
       setSelectedLocation(null);
     } catch (error) {
       console.error('Error creating company:', error);
@@ -208,7 +189,7 @@ export const CompanyCreationModal = ({ isOpen, onClose, onSuccess }) => {
                           <button
                             key={idx}
                             type="button"
-                            onClick={() => handleSelectLocation(result)}
+                            onClick={() => handleSelectLocation(result, setFieldValue)}
                             className="w-full text-left px-4 py-3 hover:bg-gray-50 transition"
                           >
                             <p className="font-bold text-gray-800">{result.name}</p>
@@ -227,7 +208,10 @@ export const CompanyCreationModal = ({ isOpen, onClose, onSuccess }) => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setSelectedLocation(null)}
+                        onClick={() => {
+                          setSelectedLocation(null);
+                          setFieldValue('address', { name: '', lat: 0, lng: 0 });
+                        }}
                         className="text-red-500 hover:text-red-700 p-2"
                       >
                         <FaTimes size={18} />
@@ -241,39 +225,7 @@ export const CompanyCreationModal = ({ isOpen, onClose, onSuccess }) => {
                     />
                   </div>
                 )}
-                <ErrorMessage name="address" component="div" className="text-red-500 text-sm mt-1" />
-              </div>
-
-              {/* Certificates */}
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
-                  <FaImage /> Certificates (Max 3)
-                </label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleCertificateAdd}
-                  disabled={certificates.length >= 3}
-                  className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
-                />
-                <div className="mt-3 space-y-2">
-                  {certificates.map((cert, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center bg-gray-50 p-2 rounded"
-                    >
-                      <span className="text-sm text-gray-700">{cert.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveCertificate(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <FaTimes />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <ErrorMessage name="address.name" component="div" className="text-red-500 text-sm mt-1" />
               </div>
 
               {/* Submit Button */}

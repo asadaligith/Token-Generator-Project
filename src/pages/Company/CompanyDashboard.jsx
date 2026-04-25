@@ -19,26 +19,8 @@ function CompanyDashboard() {
 
   useEffect(() => {
     if (!user) return;
-
-    // Wait for userData to be available if it's currently null
-    if (userData === null) return;
-
-    // Redirect if role is set but not 'company'
-    if (userData?.role && userData.role !== 'company') {
-      console.log('User has different role:', userData.role);
-      navigate('/home');
-      return;
-    }
-
-    // Load companies for company user
-    if (userData?.role === 'company') {
-      loadCompanies();
-    } else {
-      // If userData exists but has no role, redirect to home to select one
-      console.log('User has no role, redirecting to selection page');
-      navigate('/home');
-    }
-  }, [user, userData, navigate]);
+    loadCompanies();
+  }, [user]);
 
   useEffect(() => {
     if (selectedCompany) {
